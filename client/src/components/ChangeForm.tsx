@@ -3,8 +3,6 @@ import { FC, useEffect } from "react";
 import { openNotification } from "../lib/helpers";
 import { useForm } from "antd/es/form/Form";
 import ProductService from "../services/ProductService";
-import productStore from '../store/Product-store'
-import { observer } from "mobx-react-lite";
 
 type FieldType={
     isStock:boolean
@@ -22,13 +20,13 @@ interface IPropsForm
     },
     changeFetch:()=>void
 }
-const ChangeForm:FC<IPropsForm> = observer(({product,changeFetch}) => {
+const ChangeForm:FC<IPropsForm> = ({product,changeFetch}) => {
     const [form]=useForm()
     useEffect(()=>{
         form.setFieldsValue({...product})
     })
     const Submit=(values:FieldType)=>{  
-        productStore.updateProduct({...form.getFieldsValue(),id:product.id})
+        ProductService.updateProduct({...form.getFieldsValue(),id:product.id}).then(data=>openNotification(data.data)) 
         changeFetch()
     }
     return (
@@ -66,6 +64,6 @@ const ChangeForm:FC<IPropsForm> = observer(({product,changeFetch}) => {
                 </Row>
             </Form>
     );
-});
+};
 
 export default ChangeForm;
