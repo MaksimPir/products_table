@@ -49,7 +49,7 @@ class ProductController
             console.log(req.body);
             const {name,customer, isStock, dateOrder, weight}=req.body
             productService.createProduct(name,isStock,dateOrder,customer,weight)
-            res.status(201).json('Продукт успешно сохранен')
+            res.status(201).json('Продукт успешно создан')
         } catch (e) {
             next(e)
         }
