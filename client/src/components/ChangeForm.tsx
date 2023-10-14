@@ -1,8 +1,9 @@
 import { Input,Form, Select, Row, Button } from "antd";
 import { FC, useEffect } from "react";
-import { openNotification } from "../lib/helpers";
 import { useForm } from "antd/es/form/Form";
 import ProductService from "../services/ProductService";
+import { isAxiosError } from "axios";
+import UseOwnNotification from "../lib/hooks";
 
 type FieldType={
     isStock:boolean
@@ -21,15 +22,28 @@ interface IPropsForm
     changeFetch:()=>void
 }
 const ChangeForm:FC<IPropsForm> = ({product,changeFetch}) => {
+    const {openNotificationWithIcon,contextHolder}=UseOwnNotification()
     const [form]=useForm()
     useEffect(()=>{
         form.setFieldsValue({...product})
-    })
+    },[product])
     const Submit=(values:FieldType)=>{  
-        ProductService.updateProduct({...form.getFieldsValue(),id:product.id}).then(data=>openNotification(data.data)) 
-        changeFetch()
+        ProductService.updateProduct({...form.getFieldsValue(),id:product.id}).then(data=>
+            {
+                if(!isAxiosError(data))
+                {
+                  openNotificationWithIcon('success','Успешно',data.data)
+                }
+                else
+                {
+                  openNotificationWithIcon('error','Ошибка',data.message)
+                }
+              changeFetch()
+            })
     }
     return (
+        <>
+            {contextHolder}
             <Form
                 onFinish={Submit}
                 form={form}
@@ -63,6 +77,7 @@ const ChangeForm:FC<IPropsForm> = ({product,changeFetch}) => {
                     <Button type="primary" htmlType="submit">Сохранить</Button> 
                 </Row>
             </Form>
+        </>
     );
 };
 

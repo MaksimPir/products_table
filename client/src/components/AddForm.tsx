@@ -1,9 +1,10 @@
 import { Input,Form, Select, Row, Button, DatePicker, InputNumber } from "antd";
 import { FC, useState } from "react";
-import { openNotification } from "../lib/helpers";
 import { Dayjs } from "dayjs";
 import { useForm } from "antd/es/form/Form";
 import ProductService from "../services/ProductService";
+import UseOwnNotification from "../lib/hooks";
+import { isAxiosError } from "axios";
 
 type FieldType={
     name: string;
@@ -17,6 +18,7 @@ interface IAddFormProps{
 }
 
 const AddForm:FC<IAddFormProps> = ({changeFetch}) => {
+    const {openNotificationWithIcon,contextHolder}=UseOwnNotification()
     const [form]=useForm()
     const [product,setProduct]=useState<FieldType>({} as FieldType)
     const onCalendarChange=(value: Dayjs | null, dateString: string)=>{
@@ -26,17 +28,28 @@ const AddForm:FC<IAddFormProps> = ({changeFetch}) => {
         }
     }
     const Submit=(values:FieldType)=>{  
-        ProductService.createProduct(product).then(data=> openNotification(data.data))
-        form.resetFields()
-        setProduct({} as FieldType)
-        changeFetch()
+        ProductService.createProduct(product).then(data=>{
+            if(!isAxiosError(data))
+            {
+                openNotificationWithIcon('success','Успешно',data.data)
+                form.resetFields()
+                setProduct({} as FieldType)
+                changeFetch()
+            }
+            else
+            {
+                openNotificationWithIcon('error','Ошибка',data.message)
+            }
+        } )
     }
     const onChangeStock=(value:boolean)=>
     {
         setProduct({...product, isStock:value})
     }
     return (
-        <Form
+        <>
+        {contextHolder}
+            <Form
             form={form}
             onFinish={Submit}
         >
@@ -93,6 +106,7 @@ const AddForm:FC<IAddFormProps> = ({changeFetch}) => {
                 <Button type="primary" htmlType="submit">Сохранить</Button> 
             </Row>
         </Form>
+        </>
     );
 };
 
