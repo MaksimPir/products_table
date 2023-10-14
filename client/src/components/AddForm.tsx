@@ -3,8 +3,7 @@ import { FC, useState } from "react";
 import { openNotification } from "../lib/helpers";
 import { Dayjs } from "dayjs";
 import { useForm } from "antd/es/form/Form";
-import productStore from '../store/Product-store'
-import { observer } from "mobx-react-lite";
+import ProductService from "../services/ProductService";
 
 type FieldType={
     name: string;
@@ -17,7 +16,7 @@ interface IAddFormProps{
     changeFetch:()=>void
 }
 
-const AddForm:FC<IAddFormProps> = observer(({changeFetch}) => {
+const AddForm:FC<IAddFormProps> = ({changeFetch}) => {
     const [form]=useForm()
     const [product,setProduct]=useState<FieldType>({} as FieldType)
     const onCalendarChange=(value: Dayjs | null, dateString: string)=>{
@@ -27,7 +26,7 @@ const AddForm:FC<IAddFormProps> = observer(({changeFetch}) => {
         }
     }
     const Submit=(values:FieldType)=>{  
-        productStore.createProduct(product)
+        ProductService.createProduct(product).then(data=> openNotification(data.data))
         form.resetFields()
         setProduct({} as FieldType)
         changeFetch()
@@ -95,6 +94,6 @@ const AddForm:FC<IAddFormProps> = observer(({changeFetch}) => {
             </Row>
         </Form>
     );
-});
+};
 
 export default AddForm;
