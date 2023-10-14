@@ -1,50 +1,40 @@
 import {FC, useEffect, useState} from 'react';
-import {Button, Modal, Select, SelectProps, Space} from 'antd'
+import {Button, Modal, Select, SelectProps, Space, Spin} from 'antd'
 import Table, { ColumnType, ColumnsType } from 'antd/es/table';
 import { convertDate, openNotification } from '../lib/helpers';
 import { SearchOutlined } from '@ant-design/icons';
-import Highlighter from 'react-highlight-words';
+import productStore from '../store/Product-store'
 import AddForm from './AddForm';
 import ChangeForm from './ChangeForm';
 import { IProduct } from '../model';
-import ProductService from '../services/ProductService';
+import { observer } from 'mobx-react-lite';
+import Layout, { Content } from 'antd/es/layout/layout';
 
   
-const TableComponent:FC = () => {
-    const [searchText, setSearchText] = useState('')
+const TableComponent:FC = observer(() => {
     const [isFetch, setIsFetch]=useState(true)
-    const [options, setOptions]=useState<SelectProps['options']>()
-    const [products,setProducts]=useState<IProduct[]>([])
     const [visibleModalAdd,setVisibleModalAdd]=useState(false)
     const [idProductToDelete,setIdProductToDelete]=useState<number|null>(null)
     const [productToUpdate, setProductToUpdate]=useState<IProduct|null>(null)
     const handleReset = (clearFilters: () => void) => {
         clearFilters();
-        setSearchText('');
     };
     useEffect(()=>{
-      if(isFetch)
-      {
-        const response= ProductService.getAllProducts()
-        response.then((data)=>
-        {
-          const newOptions=data.map((el,index)=> {return{value:el.name, label:el.name}})
-          setOptions(newOptions)
-          setProducts(data)
-        })
-        setIsFetch(false)
-      }
-    },[isFetch])
+      console.log('render');
+    })
+    useEffect(()=>{
+      productStore.fetchProducts()
+    },[])
     const changeFetch=()=>{
       setIsFetch(prev=>!prev)
     }
     const deleteHandler=()=>{
-      if(idProductToDelete !==null) ProductService.deleteProduct(idProductToDelete).then(data=>openNotification(data.data))
+      if(idProductToDelete !==null)  productStore.deleteProduct(idProductToDelete)
       setIdProductToDelete(null)
       changeFetch()
     }
     const changeHandler=(id:number)=>{
-        const findProduct=products.find(el=>el.id===id)
+        const findProduct=productStore.products.find(el=>el.id===id)
         if(findProduct)setProductToUpdate(findProduct)
     }
       const getColumnSearchProps = (): ColumnType<IProduct> => ({
@@ -65,7 +55,7 @@ const TableComponent:FC = () => {
                 filterSort={(optionA, optionB) =>
                 (optionA?.label ? optionA?.label+''  :'').toLowerCase().localeCompare((optionB?.label ? optionB?.label+''  :'').toLowerCase())
                 }
-                options={options}
+                options={productStore.products.map((el,index)=> {return{value:el.name, label:el.name}})}
             />
             <Space>
                 <div style={{'marginTop': '5%'}}>
@@ -150,44 +140,54 @@ const TableComponent:FC = () => {
             key: 'action',
             render: (_, record) => (
               <Space size="middle">
-                <Button onClick={()=>changeHandler(record.id)}>Изменить</Button>
-                <Button onClick={()=>setIdProductToDelete(record.id)}>Удалить</Button>
+                <Button key={'change'} onClick={()=>changeHandler(record.id)}>Изменить</Button>
+                <Button key={'del'} onClick={()=>setIdProductToDelete(record.id)}>Удалить</Button>
               </Space>
             ),
           },
       ];
+      if(productStore.isLoading)
+      {
+        return  (
+          <Space direction="vertical" style={{ width: '100%' }}>
+            <Spin tip="Loading" size="large">
+            <div className="content">AAAAAAAAAAAAAAAAAAAAAAA</div>
+            </Spin>
+          </Space>
+      )
+      }
       return  ( 
         <>
-            <Button onClick={()=>setVisibleModalAdd(true)} type="primary" style={{ marginBottom: 16 }}>
+            <Button onClick={()=>setVisibleModalAdd(true)} type="primary" style={{ marginBottom: 16, position:'absolute', zIndex:1 }}>
                 Добавить товар
             </Button>
             <Table 
               rowKey={'id'}
-              columns={columns} dataSource={products} /> 
-            <Modal title='Добавить товар ' open={visibleModalAdd} footer={null} onCancel={()=>{setVisibleModalAdd((prev)=>!prev)}}>
+              columns={columns} dataSource={productStore.products} /> 
+            <Modal key={'addModal'} title='Добавить товар ' open={visibleModalAdd} footer={null} onCancel={()=>{setVisibleModalAdd((prev)=>!prev)}}>
                 <AddForm changeFetch={changeFetch}/>
             </Modal>
-            <Modal title='Удалить товар' open={idProductToDelete!==null} 
-                footer={[<Button onClick={deleteHandler}>Удалить</Button>,
-                        <Button onClick={()=>setIdProductToDelete(null)}>Отмена</Button>]} 
+            <Modal key={'delModal'} title='Удалить товар' open={idProductToDelete!==null} 
+                footer={[<Button key={'del'} onClick={deleteHandler}>Удалить</Button>,
+                        <Button key={'cancel'} onClick={()=>setIdProductToDelete(null)}>Отмена</Button>]} 
                 onCancel={()=>{setIdProductToDelete(null)}}>
-                <div> {products.map((el)=>{
+                  {productStore.products.map((el)=>{
                     if(el.id===idProductToDelete)
                     {
                         return (
                         <>
-                            <p>{el.id} {el.name}</p>
+                            <p key={el.id}>{el.id} {el.name}</p>
                         </>
                         )
                     }
-                })}</div>
+                })}
             </Modal>
-            <Modal title='Изменить товар'  open={productToUpdate!==null} footer={null} onCancel={()=>{setProductToUpdate(null)}}>
+            <Modal key={'changeModal'} title='Изменить товар'  open={productToUpdate!==null} footer={null} onCancel={()=>{setProductToUpdate(null)}}>
                 <ChangeForm product={productToUpdate!} changeFetch={changeFetch}/>
             </Modal>
         </>
       )      
       ;
-};
+});
 
 export default TableComponent;
